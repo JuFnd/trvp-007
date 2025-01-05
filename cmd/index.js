@@ -1,19 +1,23 @@
 import App from '../internal/delivery/delivery.js';
 import configs from '../configs/configs.js';
+import logger from '../internal/pkg/logger/logger.js';
+import AuthorizationService from '../internal/service/auth.js';
+import createProfileStore from '../internal/store/authorizationStore.js'
+import createSessionStore from '../internal/store/sessionStore.js'
 
 async function main() {
   try {
-    const app = new App(null);
     const redisConfig = await configs.parseRedisConfig('configs/yamls/redis.yaml');
     const postgresConfig = await configs.parsePostgresConfig('configs/yamls/postgres.yaml');
     const serviceConfig = await configs.parseServiceConfig('configs/yamls/service.yaml');
 
-    console.log('Redis Config:', redisConfig);
-    console.log('Postgres Config:', postgresConfig);
-    console.log('Service Config:', serviceConfig);
+    const authStore = createProfileStore(postgresConfig)
+    const sessionStore = createSessionStore(redisConfig);
+    const authService = new AuthorizationService(authStore, sessionStore)
+    const app = new App(authService, null, logger);
     app.run(serviceConfig);
   } catch (err) {
-    console.error('Error parsing configuration files:', err.message);
+    console.error('Error start app:', err.message);
   }
 }
 

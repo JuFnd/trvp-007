@@ -1,7 +1,7 @@
-const { json } = require('express');
+import { createHash } from 'crypto';
 
-function sendResponse(res, req, status, body, errorMessage, handlerError, logger) {
-  jsonResponse = JSON.stringify(body);
+const sendResponse = (res, req, status, body, errorMessage, handlerError, logger) => {
+  const jsonResponse = JSON.stringify(body);
   res.setHeader('Content-Type', 'application/json');
   res.status(status).send(jsonResponse);
 
@@ -13,48 +13,50 @@ function sendResponse(res, req, status, body, errorMessage, handlerError, logger
       error: handlerError.message,
     });
   } else {
-    logger.error(errorMessage, {
+    logger.info(errorMessage, {
       method: req.method,
       status,
       path: req.path,
     });
   }
-}
+};
 
-function getRequestBody(req, requestObject, logger) {
-  return new Promise((resolve, reject) => {
-    let body = [];
-    req.on('data', chunk => {
-      body.push(chunk);
-    });
+const getRequestBody = async (req, requestObject, logger) => {
+  try {
+    await new Promise((resolve, reject) => {
+      let body = [];
+      req.on('data', chunk => {
+        body.push(chunk);
+      });
 
-    req.on('end', () => {
-      try {
-        body = JSON.parse(Buffer.concat(body).toString());
-        Object.assign(requestObject, body);
-        resolve();
-      } catch (err) {
-        reject(err);
-      }
+      req.on('end', () => {
+        try {
+          body = JSON.parse(Buffer.concat(body).toString());
+          Object.assign(requestObject, body);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
     });
-  })
-    .then(() => {})
-    .catch(err => {
-      sendResponse(req.res, req, 400, null, 'Bad Request', err, logger);
-    });
-}
+  } catch (err_1) {
+    sendResponse(req.res, req, 400, null, 'Bad Request', err_1, logger);
+  }
+};
 
-function getCookie(name, value, path, httpOnly, expires) {
+const getCookie = (name, value, path, httpOnly, expiresAt) => {
   return {
     name,
     value,
-    path,
-    expires,
-    httpOnly,
+    options: {
+      path,
+      httpOnly,
+      expires: expiresAt,
+    },
   };
-}
+};
 
-function randStringRunes(seed) {
+const randStringRunes = (seed) => {
   const symbols = [];
   const letterRunes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
@@ -63,16 +65,16 @@ function randStringRunes(seed) {
   }
 
   return symbols.join('');
-}
+};
 
-function randInt() {
+const randInt = () => {
   return Math.floor(Math.random() * 1000000000);
-}
+};
 
-module.exports = {
-    sendResponse,
-    getRequestBody,
-    getCookie,
-    randStringRunes,
-    randInt,
+export default {
+  sendResponse,
+  getRequestBody,
+  getCookie,
+  randStringRunes,
+  randInt,
 };
